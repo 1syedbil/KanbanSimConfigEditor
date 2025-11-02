@@ -12,6 +12,9 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
+using System.Data;
+using System.Data.SqlClient;
+using System.Windows.Threading;
 
 namespace KanbanSimConfigEditor
 {
@@ -23,6 +26,12 @@ namespace KanbanSimConfigEditor
         public MainWindow()
         {
             InitializeComponent();
+        }
+
+        public class ConfigurationEditor
+        {
+            public string configSetting { get; set; }
+            public int configValue { get; set; }
         }
     }
 }

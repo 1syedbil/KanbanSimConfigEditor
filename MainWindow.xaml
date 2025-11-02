@@ -5,8 +5,30 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:KanbanSimConfigEditor"
         mc:Ignorable="d"
-        Title="MainWindow" Height="450" Width="800">
+        Title="Configuration Editor Tool" Height="450" Width="800">
     <Grid>
-        
+
+        <Label Content="Enter the Connection String:" HorizontalAlignment="Center" Margin="0,155,0,0" VerticalAlignment="Top" Height="40" Width="260" FontSize="20" Visibility="Visible"/>
+        <TextBox x:Name="txtConnectionString" HorizontalAlignment="Center" Margin="0,199,0,0" TextWrapping="Wrap" Text="" VerticalAlignment="Top" Width="404" Visibility="Visible"/>
+        <Button x:Name="btnConnectToDB" Content="Connect" HorizontalAlignment="Center" Margin="0,231,0,0" VerticalAlignment="Top" Height="32" Width="156" FontSize="15" Visibility="Visible"/>
+        <DataGrid x:Name="dataGridConfigEditor" Margin="10,10,387,10" Visibility="Collapsed">
+
+            <DataGrid.Columns>
+                <DataGridTextColumn Header="Configuration Setting" Binding="{Binding configSetting}" Width="200"/>
+                <DataGridTextColumn Header="Configuration Setting Value" Binding="{Binding configValue}" Width="*"/>
+            </DataGrid.Columns>
+
+            <DataGrid.Resources>
+                <Style TargetType="{x:Type DataGridColumnHeader}">
+                    <Setter Property="Background" Value="LightBlue"/>
+                    <Setter Property="FontWeight" Value="Bold"/>
+                    <Setter Property="BorderThickness" Value="2,2,1,2" />
+                    <Setter Property="BorderBrush" Value="Black" />
+                </Style>
+            </DataGrid.Resources>
+
+        </DataGrid>
+        <Button x:Name="btnSubmitSettings" Content="Submit Changes" HorizontalAlignment="Left" Margin="519,0,0,0" VerticalAlignment="Center" Height="37" Width="191" FontSize="15" Visibility="Collapsed"/>
+
     </Grid>
 </Window>
