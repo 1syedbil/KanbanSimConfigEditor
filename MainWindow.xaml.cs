@@ -28,6 +28,11 @@ namespace KanbanSimConfigEditor
             InitializeComponent();
         }
 
+        private void btnConnectToDB_Click(object sender, RoutedEventArgs e)
+        {
+
+        }
+
         public class ConfigurationEditor
         {
             public string configSetting { get; set; }

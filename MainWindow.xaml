@@ -10,7 +10,7 @@
 
         <Label Content="Enter the Connection String:" HorizontalAlignment="Center" Margin="0,155,0,0" VerticalAlignment="Top" Height="40" Width="260" FontSize="20" Visibility="Visible"/>
         <TextBox x:Name="txtConnectionString" HorizontalAlignment="Center" Margin="0,199,0,0" TextWrapping="Wrap" Text="" VerticalAlignment="Top" Width="404" Visibility="Visible"/>
-        <Button x:Name="btnConnectToDB" Content="Connect" HorizontalAlignment="Center" Margin="0,231,0,0" VerticalAlignment="Top" Height="32" Width="156" FontSize="15" Visibility="Visible"/>
+        <Button x:Name="btnConnectToDB" Content="Connect" HorizontalAlignment="Center" Margin="0,231,0,0" VerticalAlignment="Top" Height="32" Width="156" FontSize="15" Visibility="Visible" Click="btnConnectToDB_Click"/>
         <DataGrid x:Name="dataGridConfigEditor" Margin="10,10,387,10" Visibility="Collapsed">
 
             <DataGrid.Columns>
