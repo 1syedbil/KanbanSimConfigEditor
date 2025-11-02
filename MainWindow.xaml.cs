@@ -1,4 +1,11 @@
-﻿using System;
+﻿// FILE          : MainWindow.xaml.cs
+// PROJECT       : Advanced SQL Project Milestone 1
+// PROGRAMMER    : Bilal Syed
+// FIRST VERSION : 2025-11-01
+// DESCRIPTION   : Main window for the Configuration Editor UI. Handles DB connection toggling,
+//                 populates/updates ConfigurationSettings via ADO.NET, and validates input.
+
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -19,28 +26,28 @@ using System.Globalization;
 
 namespace KanbanSimConfigEditor
 {
-    /// <summary>
-    /// Interaction logic for MainWindow.xaml
-    /// </summary>
     public partial class MainWindow : Window
     {
         private readonly Connection _connection = new Connection();
         private readonly ConfigurationTable _configTable = new ConfigurationTable();
-        private System.Collections.Generic.List<ConfigurationEditor> _baselineRows;
+        private List<ConfigurationEditor> _baselineRows;
 
         public MainWindow()
         {
             InitializeComponent();
 
-            // Ensure the grid does NOT auto-generate extra columns
             dataGridConfigEditor.AutoGenerateColumns = false;
 
             dataGridConfigEditor.CanUserAddRows = false;
 
-            // Wire the submit click if not wired in XAML
             btnSubmitSettings.Click += btnSubmitSettings_Click;
         }
 
+        // METHOD      : btnConnectToDB_Click 
+        // DESCRIPTION : Validates the connection string, opens the DB connection via Connection,
+        //               toggles UI visibility, and loads ConfigurationSettings into the grid.
+        // PARAMETERS  : sender -> event source; e -> click event arguments.
+        // RETURNS     : void. Shows message boxes on validation or connection errors.
         private void btnConnectToDB_Click(object sender, RoutedEventArgs e)
         {
             var cs = (txtConnectionString?.Text ?? string.Empty).Trim();
@@ -71,7 +78,6 @@ namespace KanbanSimConfigEditor
                 return;
             }
 
-            // Success → flip visibility (use your actual names)
             lblEnterString.Visibility = Visibility.Collapsed;
             txtConnectionString.Visibility = Visibility.Collapsed;
             btnConnectToDB.Visibility = Visibility.Collapsed;
@@ -79,11 +85,10 @@ namespace KanbanSimConfigEditor
             dataGridConfigEditor.Visibility = Visibility.Visible;
             btnSubmitSettings.Visibility = Visibility.Visible;
 
-            // Load rows (only description + value), bind to existing columns
             try
             {
                 var rows = _configTable.LoadAll(_connection.Sql);
-                dataGridConfigEditor.ItemsSource = rows;  // uses configSetting/configValue bindings you already have
+                dataGridConfigEditor.ItemsSource = rows;
                 _baselineRows = CloneRows(rows);
             }
             catch (Exception ex)
@@ -93,9 +98,13 @@ namespace KanbanSimConfigEditor
             }
         }
 
+        // METHOD      : btnSubmitSettings_Click 
+        // DESCRIPTION : Commits in-progress edits, reverts illegal description edits,
+        //               validates numeric values, then persists changes to the database.
+        // PARAMETERS  : sender -> event source; e -> click event arguments.
+        // RETURNS     : void. Displays messages on validation or persistence errors.
         private void btnSubmitSettings_Click(object sender, RoutedEventArgs e)
         {
-            // Commit any in-progress cell/row edit
             dataGridConfigEditor.CommitEdit(DataGridEditingUnit.Cell, true);
             dataGridConfigEditor.CommitEdit(DataGridEditingUnit.Row, true);
 
@@ -107,7 +116,6 @@ namespace KanbanSimConfigEditor
                 return;
             }
 
-            // 1) REVERT any edits to the left column (Configuration Setting / configSetting)
             if (_baselineRows == null || _baselineRows.Count != dataGridConfigEditor.Items.Count)
             {
                 RestoreFromDatabase();
@@ -120,7 +128,7 @@ namespace KanbanSimConfigEditor
             int dataRowIndex = 0;
             foreach (var obj in dataGridConfigEditor.Items)
             {
-                if (obj == System.Windows.Data.CollectionView.NewItemPlaceholder) continue;
+                if (obj == CollectionView.NewItemPlaceholder) continue;
                 var row = obj as ConfigurationEditor;
                 if (row == null) continue;
 
@@ -128,7 +136,7 @@ namespace KanbanSimConfigEditor
 
                 if (!string.Equals(row.configSetting, baseline.configSetting, StringComparison.Ordinal))
                 {
-                    row.configSetting = baseline.configSetting; // revert to original
+                    row.configSetting = baseline.configSetting;
                     anyDescEdited = true;
                 }
 
@@ -140,10 +148,9 @@ namespace KanbanSimConfigEditor
                 dataGridConfigEditor.Items.Refresh();
                 MessageBox.Show("Configuration Setting names cannot be changed. The edited cell(s) were reverted.",
                     "Edit Not Allowed", MessageBoxButton.OK, MessageBoxImage.Warning);
-                return; // stop here; user can re-submit after seeing the revert
+                return;
             }
 
-            // 2) Ensure ALL values in the right column are numbers
             if (!AllSettingValuesAreNumbers())
             {
                 MessageBox.Show(
@@ -151,10 +158,9 @@ namespace KanbanSimConfigEditor
                     "Please correct the highlighted value(s) and try again.",
                     "Validation Error",
                     MessageBoxButton.OK, MessageBoxImage.Warning);
-                return; // STOP: do not hit the database
+                return;
             }
 
-            // 3) Domain validation for DECIMAL(10,2)
             foreach (var item in items)
             {
                 if (item == null)
@@ -173,19 +179,17 @@ namespace KanbanSimConfigEditor
                 }
             }
 
-            // 4) Persist to DB
             try
             {
                 _configTable.UpdateAll(_connection.Sql, items);
                 MessageBox.Show("Configuration settings updated successfully.",
                     "Success", MessageBoxButton.OK, MessageBoxImage.Information);
 
-                // Reload and refresh baseline so future reverts use the newest values
                 var refreshed = _configTable.LoadAll(_connection.Sql);
                 dataGridConfigEditor.ItemsSource = refreshed;
                 _baselineRows = CloneRows(refreshed);
             }
-            catch (System.Data.SqlClient.SqlException ex)
+            catch (SqlException ex)
             {
                 MessageBox.Show("A database error occurred while saving settings.\n\n" + ex.Message,
                     "Database Error", MessageBoxButton.OK, MessageBoxImage.Error);
@@ -197,9 +201,14 @@ namespace KanbanSimConfigEditor
             }
         }
 
-        private static System.Collections.Generic.List<ConfigurationEditor> CloneRows(System.Collections.Generic.IEnumerable<ConfigurationEditor> source)
+        // METHOD      : CloneRows
+        // DESCRIPTION : Creates a shallow copy list of ConfigurationEditor rows for baseline
+        //               comparison and restoration without mutating the live ItemsSource.
+        // PARAMETERS  : source -> enumerable of ConfigurationEditor to clone.
+        // RETURNS     : List<ConfigurationEditor> copy preserving values only.
+        private static List<ConfigurationEditor> CloneRows(IEnumerable<ConfigurationEditor> source)
         {
-            var clone = new System.Collections.Generic.List<ConfigurationEditor>();
+            var clone = new List<ConfigurationEditor>();
             foreach (var r in source)
             {
                 clone.Add(new ConfigurationEditor
@@ -211,6 +220,11 @@ namespace KanbanSimConfigEditor
             return clone;
         }
 
+        // METHOD      : RestoreFromDatabase 
+        // DESCRIPTION : Reloads ConfigurationSettings from DB, resets ItemsSource and baseline,
+        //               and refreshes the grid to discard local, invalid edits.
+        // PARAMETERS  : none.
+        // RETURNS     : void. Shows an error message if reload fails.
         private void RestoreFromDatabase()
         {
             try
@@ -227,12 +241,15 @@ namespace KanbanSimConfigEditor
             }
         }
 
+        // METHOD      : AllSettingValuesAreNumbers 
+        // DESCRIPTION : Verifies every visible cell in the value column parses as a decimal
+        //               (integer or fractional, current or invariant culture).
+        // PARAMETERS  : none.
+        // RETURNS     : bool -> true if all cells are numeric; otherwise false.
         private bool AllSettingValuesAreNumbers()
         {
-            // Make sure visual tree is ready for cells we might touch
             dataGridConfigEditor.UpdateLayout();
 
-            // Index of your "Configuration Setting Value" column
             var colIndex = -1;
             for (int i = 0; i < dataGridConfigEditor.Columns.Count; i++)
             {
@@ -242,24 +259,16 @@ namespace KanbanSimConfigEditor
                     break;
                 }
             }
-            if (colIndex < 0) return false; // column must exist
+            if (colIndex < 0) return false;
 
-            // Iterate through *data* items, skipping placeholder/non-data rows
             for (int rowIndex = 0; rowIndex < dataGridConfigEditor.Items.Count; rowIndex++)
             {
                 var item = dataGridConfigEditor.Items[rowIndex];
 
-                // Skip non-data items (e.g., NewItemPlaceholder if CanUserAddRows is ever turned back on)
-                if (item == System.Windows.Data.CollectionView.NewItemPlaceholder) continue;
+                if (item == CollectionView.NewItemPlaceholder) continue;
                 var bound = item as ConfigurationEditor;
-                if (bound == null) continue; // not a data row; ignore
+                if (bound == null) continue;
 
-                // Prefer reading the committed value from the model.
-                // If it's already a decimal, it's numeric by definition.
-                // (If an edit wasn't committed, the commit lines above force it.)
-                // Still, double-check via decimal parsing of the formatted text if you want to be strict.
-
-                // Use the cell's displayed text only if you want to catch odd formatting:
                 string rawText = null;
                 var row = (DataGridRow)dataGridConfigEditor.ItemContainerGenerator.ContainerFromIndex(rowIndex);
                 if (row != null)
@@ -269,9 +278,8 @@ namespace KanbanSimConfigEditor
                     else if (cellContent is TextBlock tb) rawText = tb.Text;
                 }
 
-                // Fall back to the bound decimal if we didn't get a visual element
                 if (string.IsNullOrWhiteSpace(rawText))
-                    rawText = bound.configValue.ToString(System.Globalization.CultureInfo.CurrentCulture);
+                    rawText = bound.configValue.ToString(CultureInfo.CurrentCulture);
 
                 rawText = rawText?.Trim();
                 if (string.IsNullOrEmpty(rawText)) return false;
@@ -279,7 +287,6 @@ namespace KanbanSimConfigEditor
                 decimal parsed;
                 if (!TryParseDecimalFlexible(rawText, out parsed))
                 {
-                    // Focus the bad cell to help the user fix it
                     dataGridConfigEditor.SelectedIndex = rowIndex;
                     dataGridConfigEditor.CurrentCell = new DataGridCellInfo(item, dataGridConfigEditor.Columns[colIndex]);
                     dataGridConfigEditor.ScrollIntoView(item, dataGridConfigEditor.Columns[colIndex]);
@@ -290,10 +297,13 @@ namespace KanbanSimConfigEditor
             return true;
         }
 
+        // METHOD      : TryParseDecimalFlexible 
+        // DESCRIPTION : Attempts to parse a numeric string as decimal using current culture,
+        //               then invariant culture (accepts integers and decimals).
+        // PARAMETERS  : s -> input text; value -> parsed decimal out param.
+        // RETURNS     : bool -> true if parse succeeded; otherwise false.
         private static bool TryParseDecimalFlexible(string s, out decimal value)
         {
-            // Accept integers and decimals using current culture OR invariant culture (e.g., "." as decimal)
-            // Also allow leading/trailing whitespace which is already trimmed by caller.
             if (decimal.TryParse(s, NumberStyles.Number, CultureInfo.CurrentCulture, out value))
                 return true;
             if (decimal.TryParse(s, NumberStyles.Number, CultureInfo.InvariantCulture, out value))
@@ -303,6 +313,10 @@ namespace KanbanSimConfigEditor
             return false;
         }
 
+        // METHOD      : IsAllDigits 
+        // DESCRIPTION : Checks whether a string contains only digit characters.
+        // PARAMETERS  : s -> input string to test.
+        // RETURNS     : bool -> true if all characters are digits; false otherwise.
         private static bool IsAllDigits(string s)
         {
             if (string.IsNullOrEmpty(s)) return false;
@@ -313,16 +327,23 @@ namespace KanbanSimConfigEditor
             return true;
         }
 
+        // METHOD      : IsDecimal10_2 
+        // DESCRIPTION : Validates that a decimal fits the DECIMAL(10,2) non-negative range
+        //               (0.00 to 99,999,999.99). Adjust if negatives are later allowed.
+        // PARAMETERS  : value -> decimal to validate.
+        // RETURNS     : bool -> true if within range; otherwise false.
         private static bool IsDecimal10_2(decimal value)
         {
             return value >= 0m && value <= 99999999.99m;
         }
 
-        // EXACTLY the properties your XAML binds to:
+        // NAME    : ConfigurationEditor
+        // PURPOSE : DataGrid row model bound to existing columns:
+        //           configSetting (description) and configValue (numeric value).
         public class ConfigurationEditor
         {
-            public string configSetting { get; set; }  // maps to config_description
-            public decimal configValue { get; set; }  // maps to config_value
+            public string configSetting { get; set; }
+            public decimal configValue { get; set; }
         }
     }
 }

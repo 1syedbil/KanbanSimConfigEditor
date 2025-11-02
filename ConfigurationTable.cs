@@ -1,4 +1,12 @@
-﻿using System;
+﻿// FILE          : ConfigurationTable.cs
+// PROJECT       : Advanced SQL Project Milestone 1
+// PROGRAMMER    : Bilal Syed
+// FIRST VERSION : 2025-11-01
+// DESCRIPTION   : Handles ADO.NET data access for ConfigurationSettings. 
+//                 Retrieves and updates config_description and config_value 
+//                 fields from the database for the Configuration Editor tool.
+
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -8,12 +16,16 @@ using System.Data.SqlClient;
 
 namespace KanbanSimConfigEditor
 {
+    // NAME    : ConfigurationTable 
+    // PURPOSE : Provides utilities for reading and updating the ConfigurationSettings
+    //           table in the KanbanDB database using ADO.NET.
     internal class ConfigurationTable
     {
-        /// <summary>
-        /// Returns (config_description, config_value) rows for the grid.
-        /// Maps to MainWindow.ConfigurationEditor: configSetting, configValue.
-        /// </summary>
+        // METHOD      : LoadAll 
+        // DESCRIPTION : Reads all configuration rows (description and value)
+        //               from the ConfigurationSettings table in sorted order.
+        // PARAMETERS  : sql -> Active SqlConnection object.
+        // RETURNS     : List<MainWindow.ConfigurationEditor> containing descriptions and values.
         public List<MainWindow.ConfigurationEditor> LoadAll(SqlConnection sql)
         {
             if (sql == null || sql.State != ConnectionState.Open)
@@ -43,10 +55,11 @@ namespace KanbanSimConfigEditor
             return list;
         }
 
-        /// <summary>
-        /// Persists changes by matching on config_description.
-        /// Validates values against DECIMAL(10,2).
-        /// </summary>
+        // METHOD      : UpdateAll 
+        // DESCRIPTION : Updates config_value in the ConfigurationSettings table
+        //               for each row based on config_description.
+        // PARAMETERS  : sql -> Active SqlConnection; items -> list of rows to update.
+        // RETURNS     : void. Throws exceptions if validation or update fails.
         public void UpdateAll(SqlConnection sql, IEnumerable<MainWindow.ConfigurationEditor> items)
         {
             if (sql == null || sql.State != ConnectionState.Open)
@@ -68,7 +81,6 @@ namespace KanbanSimConfigEditor
                         if (item == null)
                             throw new ArgumentNullException("A configuration row was null.");
 
-                        // Validate DECIMAL(10,2) domain (adjust if negatives should be allowed)
                         if (!IsValidDecimal10_2(item.configValue))
                             throw new ArgumentOutOfRangeException(
                                 $"Value '{item.configValue}' for '{item.configSetting}' is outside DECIMAL(10,2) range (0..99,999,999.99).");
@@ -98,6 +110,10 @@ namespace KanbanSimConfigEditor
             }
         }
 
+        // METHOD      : IsValidDecimal10_2 
+        // DESCRIPTION : Validates that a decimal fits within the DECIMAL(10,2) range.
+        // PARAMETERS  : value -> decimal number to check.
+        // RETURNS     : bool -> true if within range; otherwise false.
         private static bool IsValidDecimal10_2(decimal value)
         {
             return value >= 0m && value <= 99999999.99m;
